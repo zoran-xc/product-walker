@@ -130,6 +130,66 @@ runtime 提供 TypeScript 实现，供 skill 调用：
 | storage helper | `runtime/storage.ts` | 读写 path/session/bug/report |
 | CLI | `runtime/cli.ts` | `product-walker init/run/report` |
 
+## 分层编号 + 多轮迭代
+
+product-walker 支持 L1-L4 粒度分层 + 多轮迭代，逐层细分测试场景：
+
+| 层级 | 格式 | 粒度 | round | 关注点 |
+|------|------|------|-------|--------|
+| 一级 | `PW-AUTH-001` | L1 模块级 | 1 | 走通主流程 |
+| 二级 | `PW-AUTH-001.002` | L2 流程级 | 2 | 输入/状态变体 |
+| 三级 | `PW-AUTH-001.002.003` | L3 交互级 | 3 | 单交互元素行为 |
+| 四级 | `PW-AUTH-001.002.003.004` | L4 视觉级 | 4 | 颜色/动画/红点等细节 |
+
+- id 用 dot 分隔，保证字典序排列时父路径在子路径前（`PW-AUTH-001` < `PW-AUTH-001.002`）
+- 第 N 轮从第 N-1 轮的叶子延伸，不跨层
+- L3/L4 路径的 steps 必填 `assertions[]`（可验证断言，如 `visible`/`text`/`class`/`style`/`count`/`state`）
+- 二级路径 schema 含 `parentId`（父路径 id）+ `rootId`（根路径 id）+ `depth` + `granularity` + `round`
+
+### 多轮迭代流程
+
+1. **round=1**：hunter 产出一级路径（L1 主流程，走通模块）
+2. **round=2**：hunter 从每个一级路径延伸二级（L2 流程变体：空值/边界值/超长/特殊字符/不同错误码）
+3. **round=3**：从二级延伸三级（L3 交互细节：按钮 disabled、表单失焦校验、错误提示文案、tooltip）
+4. **round=4**：从三级延伸四级（L4 视觉细节：红点显示、loading spinner、hover 效果、边框颜色、动画）
+
+每轮结束更新聚合报告，迭代直到 4 视角（real-user/cross-module/external-env/variant）均无新路径产出，或用户喊停。
+
+### assertions 断言类型
+
+L3/L4 路径的 `steps[].assertions[]` 支持以下断言：
+
+| type | 用途 | 示例 expected |
+|------|------|---------------|
+| `visible` | 元素可见 | `true` |
+| `hidden` | 元素隐藏 | `true` |
+| `text` | 确切文案 | `请输入邮箱` |
+| `attribute` | 属性值 | `disabled:true` |
+| `class` | 类名包含 | `badge-danger` |
+| `style` | 样式属性 | `border-color: rgb(239,68,68)` |
+| `count` | 元素数量 | `1` |
+| `state` | 元素状态 | `disabled` / `loading` / `enabled` |
+| `network` | 网络请求 | `POST /api/v1/auth/login → 401` |
+| `console` | 控制台日志 | `error: undefined` |
+
+## runtime 与宿主测试的边界
+
+product-walker 的产出与宿主项目的测试完全隔离，不重合：
+
+| 类型 | 位置 | 职责 |
+|------|------|------|
+| product-walker 数据 | `<宿主>/product-walker/` | 体验记录（paths/sessions/bugs/reports） |
+| 宿主 e2e | `<宿主>/e2e/` | 契约验证（实现是否符合 spec） |
+| 宿主单元测试 | `<宿主>/server/src/__tests__/` | 单元测试 |
+| fixer 回归测试 | `<宿主>/__tests__/pw-bug-NNN.test.ts` | bug 修复回归（带 `pw-bug-` 前缀） |
+
+- **product-walker 是「体验发现」**：找 spec 没覆盖的体验缺陷
+- **宿主 e2e 是「契约验证」**：保证 spec 实现
+- 两者互补不重叠：e2e 验证「做对了」，product-walker 发现「漏了什么」
+- fixer 写的回归测试放宿主 `__tests__/`，但命名带 `pw-bug-` 前缀与宿主原有测试区分
+- product-walker 的 paths/sessions/bugs/reports 只在 `product-walker/` 目录下，不污染宿主 e2e 或 `__tests__/`
+
+
 ## 许可证
 
 MIT，见 [LICENSE](./LICENSE)。
