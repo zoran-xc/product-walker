@@ -19,6 +19,9 @@
 | `error-handling.md` | 错误处理一致性（catch 静默吞错 + 裸 Error throw + 错误码统一） | 发现 1 个 catch 块静默吞错或 `throw new Error` → 全代码库扫描 | `PW-SCAN-error-handling.md` |
 | `auth-matrix.md` | 权限矩阵（auth middleware + IDOR + 限流 + 角色矩阵） | 发现 1 个 endpoint 缺 auth 或未校验所有权 → 全路由扫描 | `PW-SCAN-auth-matrix.md` |
 | `log-redaction.md` | 日志脱敏（logger redact + PII 字段 + console 卫生 + 第三方告警） | 发现 1 个 logger 打印敏感字段或 console 无 DEV guard → 全代码库扫描 | `PW-SCAN-log-redaction.md` |
+| `i18n-alignment.md` | 国际化对齐（中文硬编码 vs t() 调用一致性） | 发现 1 个组件含硬编码中文且未走 t() → 全代码库扫描 | `PW-SCAN-i18n-alignment.md` |
+| `cve-dependency.md` | CVE 依赖扫描（npm audit + 过时依赖 + 版本一致性） | 发现 1 个依赖有 critical/high CVE 或 major 跳跃过时 → 全 package.json 扫描 | `PW-SCAN-cve-dependency.md` |
+| `env-usage.md` | 环境变量使用（process.env 散落 + secret fail-fast + .env.example 覆盖率） | 发现 1 处 process.env.XXX 直接用法且不在 config 层 → 全代码库扫描 | `PW-SCAN-env-usage.md` |
 
 ## 在新项目应用的工作流
 
@@ -41,6 +44,9 @@
 | catch / throw new Error / 静默吞错 / 错误工厂 | 错误处理一致性扫描 | `error-handling.md` |
 | auth / ownership / IDOR / params.id / 限流 / 角色 | 权限矩阵扫描 | `auth-matrix.md` |
 | logger / console.log / req.body / token / PII / redact | 日志脱敏扫描 | `log-redaction.md` |
+| 中文 / 硬编码 / t() / i18n / useTranslation / errors.json | 国际化对齐扫描 | `i18n-alignment.md` |
+| CVE / npm audit / 过时 / major 跳跃 / 版本不一致 | CVE 依赖扫描 | `cve-dependency.md` |
+| process.env / secret / JWT_SECRET / .env.example / config 层 | 环境变量使用扫描 | `env-usage.md` |
 
 ### 3. 派扫描 sub-agent
 
@@ -84,6 +90,9 @@
 - 项目无错误处理中间件（如纯函数式）→ 跳过错误处理一致性扫描
 - 项目无 auth 概念（如纯内部工具）→ 跳过权限矩阵扫描
 - 项目无日志系统（如纯客户端）→ 跳过日志脱敏扫描
+- 项目无多语言需求（如纯内部工具）→ 跳过 i18n 对齐扫描
+- 项目无 npm/依赖管理（如纯 Python / Rust）→ 跳过 CVE 依赖扫描（用对应生态的工具）
+- 项目无 env 变量（如纯静态文件）→ 跳过环境变量使用扫描
 
 **跳过时显式声明**「该项目无 X，跳过 Y 扫描」并记录理由，避免遗漏。
 
@@ -103,18 +112,21 @@
 - [x] 错误处理一致性（catch 静默吞错 + 裸 Error throw）— yonder PW-BUG-025/026
 - [x] 权限矩阵（auth middleware + IDOR + 限流）— yonder PW-BUG-027/028/029
 - [x] 日志脱敏（logger redact + PII + console 卫生 + 第三方告警）— yonder PW-BUG-030/031/032/033/034
+- [x] 国际化 i18n 对齐（中文硬编码 + errors.json key 覆盖）— yonder PW-BUG-035
+- [x] CVE 依赖扫描（npm audit + 过时 + 版本一致性）— yonder PW-BUG-040~051
+- [x] 环境变量使用（process.env 散落 + secret fail-fast + .env.example 覆盖率）— yonder PW-BUG-052/053
 
 ## 待发现的扫描维度
 
 以下维度尚未在 yonder 项目上触发，但可能在未来项目出现：
 
-- [ ] 国际化 i18n 对齐（文案硬编码 vs t() 调用一致性）
-- [ ] 依赖版本扫描（package.json 是否有已知 CVE 的版本）
-- [ ] 环境变量使用扫描（process.env 直接用 vs config 层统一管理）
 - [ ] 性能基线扫描（关键 endpoint P95 延迟 / DB 慢查询 / N+1 查询）
 - [ ] 数据库索引审计（高频查询字段是否有索引 / 索引是否被使用）
 - [ ] 并发安全扫描（共享状态 mutation / 锁粒度 / 死锁风险）
 - [ ] API 兼容性扫描（breaking change 检测 / 版本号管理 / 废弃字段处理）
 - [ ] 前端性能扫描（bundle size / tree-shaking / code-splitting / lazy load）
+- [ ] 数据库迁移安全扫描（migration 文件 / 回滚策略 / schema 漂移检测）
+- [ ] 测试覆盖率审计（关键模块覆盖率 / 集成 vs 单元比 / 测试质量）
+- [ ] 文档一致性扫描（API 文档 vs 实现一致性 / README vs 实际行为）
 
 发现新模式时，agent 应主动追加新清单文件 + 在本目录 README 登记。
