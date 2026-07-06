@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.env
+runs/
+# runs/ 是用户跑体验测试时生成的会话/截图/报告，不入库

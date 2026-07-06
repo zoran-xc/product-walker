@@ -1,0 +1,28 @@
+{
+  "id": "PW-AUTH-001",
+  "name": "登录后查看会话并发送消息",
+  "module": "auth",
+  "goal": "验证登录成功后能进入会话列表、打开会话、发送消息并收到回复",
+  "perspective": "happy",
+  "prerequisites": [
+    { "type": "env", "description": "本地 dev 服务已起，端口 5173" },
+    { "type": "auth", "description": "有可用测试账号 test@example.com / password123" },
+    { "type": "data", "description": "该账号下至少有 1 个会话" }
+  ],
+  "steps": [
+    { "id": "s1", "action": "打开登录页", "target": "http://localhost:5173/login", "expected": "看到登录表单，含邮箱密码输入框和登录按钮" },
+    { "id": "s2", "action": "输入邮箱", "target": "input[name=email]", "expected": "邮箱输入框显示输入的值" },
+    { "id": "s3", "action": "输入密码", "target": "input[name=password]", "expected": "密码输入框显示掩码" },
+    { "id": "s4", "action": "点击登录按钮", "target": "button[type=submit]", "expected": "跳转到首页，URL 不再是 /login" },
+    { "id": "s5", "action": "查看会话列表", "target": "[data-testid=session-list]", "expected": "列表显示至少 1 个会话项" },
+    { "id": "s6", "action": "点击第一个会话", "target": "[data-testid=session-item]:first-child", "expected": "进入会话详情，看到消息历史" },
+    { "id": "s7", "action": "在输入框输入消息", "target": "[data-testid=message-input]", "expected": "输入框显示输入的消息文本" },
+    { "id": "s8", "action": "点击发送按钮", "target": "[data-testid=send-button]", "expected": "消息出现在消息列表，随后收到回复" }
+  ],
+  "expectedOutcome": "用户登录后能顺畅地查看会话、发送消息并收到回复，全程无报错",
+  "metadata": {
+    "createdAt": "2026-07-06T00:00:00Z",
+    "createdBy": "orchestrator",
+    "version": "0.1.0"
+  }
+}

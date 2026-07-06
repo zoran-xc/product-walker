@@ -1,0 +1,24 @@
+{
+  "name": "product-walker",
+  "version": "0.1.0",
+  "description": "AI 产品体验师通用 Skill 集合 - 让 agent 自主走遍产品路径、发现 bug、汇报体验缺陷",
+  "license": "MIT",
+  "author": "zoran-xc",
+  "type": "module",
+  "bin": {
+    "product-walker": "./runtime/cli.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.0.0",
+    "@types/node": "^20.0.0"
+  }
+}
