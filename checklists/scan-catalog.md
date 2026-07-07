@@ -22,6 +22,9 @@
 | `i18n-alignment.md` | 国际化对齐（中文硬编码 vs t() 调用一致性） | 发现 1 个组件含硬编码中文且未走 t() → 全代码库扫描 | `PW-SCAN-i18n-alignment.md` |
 | `cve-dependency.md` | CVE 依赖扫描（npm audit + 过时依赖 + 版本一致性） | 发现 1 个依赖有 critical/high CVE 或 major 跳跃过时 → 全 package.json 扫描 | `PW-SCAN-cve-dependency.md` |
 | `env-usage.md` | 环境变量使用（process.env 散落 + secret fail-fast + .env.example 覆盖率） | 发现 1 处 process.env.XXX 直接用法且不在 config 层 → 全代码库扫描 | `PW-SCAN-env-usage.md` |
+| `concurrency-safety.md` | 并发安全（check-then-act 竞态 + SELECT-then-INSERT upsert + 跨步骤无事务 + 幂等性 + UNIQUE 兜底） | 发现 1 个 service 方法「先 count/find 再 mutate」且两步不在同一事务内 → 全代码库扫描 | `PW-SCAN-concurrency-safety.md` |
+| `n-plus-1-query.md` | N+1 查询（循环内单条查询 + 多关联预取 + 分页 + 批量 upsert） | 发现 1 个 list 接口在循环内调用 await repo.findXxx → 全 service 层扫描 | `PW-SCAN-n-plus-1-query.md` |
+| `db-index-audit.md` | 数据库索引审计（高频字段缺索引 + 复合索引顺序 + partial index + UNIQUE 兜底 + 迁移安全） | 发现 1 个 repo where(eq(...)) 但该字段在 schema 无 index → 全 repo/schema 扫描 | `PW-SCAN-db-index-audit.md` |
 
 ## 在新项目应用的工作流
 
@@ -47,6 +50,9 @@
 | 中文 / 硬编码 / t() / i18n / useTranslation / errors.json | 国际化对齐扫描 | `i18n-alignment.md` |
 | CVE / npm audit / 过时 / major 跳跃 / 版本不一致 | CVE 依赖扫描 | `cve-dependency.md` |
 | process.env / secret / JWT_SECRET / .env.example / config 层 | 环境变量使用扫描 | `env-usage.md` |
+| count + mutate / check-then-act / FOR UPDATE / upsert SELECT-then-INSERT / 幂等 / 事务 | 并发安全扫描 | `concurrency-safety.md` |
+| list + 循环 / N round-trip / findByIds / batch / N+1 | N+1 查询扫描 | `n-plus-1-query.md` |
+| where(eq) / seq scan / index / uniqueIndex / partial index / CREATE INDEX | 数据库索引审计扫描 | `db-index-audit.md` |
 
 ### 3. 派扫描 sub-agent
 
@@ -93,6 +99,9 @@
 - 项目无多语言需求（如纯内部工具）→ 跳过 i18n 对齐扫描
 - 项目无 npm/依赖管理（如纯 Python / Rust）→ 跳过 CVE 依赖扫描（用对应生态的工具）
 - 项目无 env 变量（如纯静态文件）→ 跳过环境变量使用扫描
+- 项目无并发 mutate（如纯只读 / 单进程同步）→ 跳过并发安全扫描
+- 项目无 list / 关联实体场景（如纯 CRUD 单条）→ 跳过 N+1 查询扫描
+- 项目无 DB / 持久层（如纯内存）→ 跳过数据库索引审计扫描
 
 **跳过时显式声明**「该项目无 X，跳过 Y 扫描」并记录理由，避免遗漏。
 
@@ -115,14 +124,14 @@
 - [x] 国际化 i18n 对齐（中文硬编码 + errors.json key 覆盖）— yonder PW-BUG-035
 - [x] CVE 依赖扫描（npm audit + 过时 + 版本一致性）— yonder PW-BUG-040~051
 - [x] 环境变量使用（process.env 散落 + secret fail-fast + .env.example 覆盖率）— yonder PW-BUG-052/053
+- [x] 并发安全（check-then-act 竞态 + SELECT-then-INSERT upsert + 跨步骤无事务 + 幂等 + UNIQUE 兜底）— yonder PW-BUG-054/055/056/057/059/060/063/064
+- [x] N+1 查询（循环内单条查询 + 多关联预取 + 批量 upsert）— yonder PW-BUG-080/081/082/083/084
+- [x] 数据库索引审计（高频字段缺索引 + 复合索引顺序 + partial index + UNIQUE 兜底 + 迁移安全）— yonder PW-BUG-056/070/071/072/073/074/075/076/077/078/079
 
 ## 待发现的扫描维度
 
 以下维度尚未在 yonder 项目上触发，但可能在未来项目出现：
 
-- [ ] 性能基线扫描（关键 endpoint P95 延迟 / DB 慢查询 / N+1 查询）
-- [ ] 数据库索引审计（高频查询字段是否有索引 / 索引是否被使用）
-- [ ] 并发安全扫描（共享状态 mutation / 锁粒度 / 死锁风险）
 - [ ] API 兼容性扫描（breaking change 检测 / 版本号管理 / 废弃字段处理）
 - [ ] 前端性能扫描（bundle size / tree-shaking / code-splitting / lazy load）
 - [ ] 数据库迁移安全扫描（migration 文件 / 回滚策略 / schema 漂移检测）
